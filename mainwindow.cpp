@@ -28,10 +28,10 @@ void MainWindow::initWidget()
     height_label_ = new QLabel("高度");
     height_label_->setFixedWidth(50);
 
-    width_edit_ = new QLineEdit("50");
+    width_edit_ = new QLineEdit("31");
     width_edit_->setFixedWidth(100);
 
-    height_edit_ = new QLineEdit("50");
+    height_edit_ = new QLineEdit("21");
     height_edit_->setFixedWidth(100);
 
     generate_button_ = new QPushButton("生成地图");
@@ -99,6 +99,7 @@ void MainWindow::connectSigal()
 void MainWindow::onGenerateButton()
 {
     map_->creatMap(width_edit_->text().toInt(), height_edit_->text().toInt());
+    map_->showMap();
     update();
 }
 
