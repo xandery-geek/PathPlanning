@@ -27,12 +27,16 @@ SOURCES += \
         main.cpp \
         mainwindow.cpp \
     generatemap.cpp \
-    prm.cpp
+    prm.cpp \
+    graph.cpp \
+    kdtree.cpp
 
 HEADERS += \
         mainwindow.h \
     generatemap.h \
-    prm.h
+    prm.h \
+    graph.h \
+    kdtree.h
 
 FORMS += \
         mainwindow.ui

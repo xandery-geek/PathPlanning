@@ -5,21 +5,13 @@
 #include <QPainter>
 #include <QPixmap>
 #include <QPoint>
+#include "graph.h"
 
 class GenerateMap: public QWidget
 {
     Q_OBJECT
 
 private:
-
-    enum PaintEnum
-    {
-        NotPaint = 0,
-        PaintMap = 1,
-        PaintPoint = 2,
-        PaintPath = 3,
-    };
-
     enum Dir_Enum
     {
         D_LEFT = 0,
@@ -41,7 +33,6 @@ private:
     QPoint start_point_;
     QPoint end_point_;
 
-    int paint_flag_;
     QPainter painter_;
 
     QPixmap *canvas_;        //canvas
@@ -57,7 +48,17 @@ public:
     ~GenerateMap();
 
     void creatMap(int width, int height);    //creat image and save to map_matrix_
+    void refreashMap(); //refreash map
     void showMap();     //show generated map in the widget
+    void showPoint();   //showe start point and end point
+    void showRobot(const QVector<QPoint>& points);   //show the track of robot
+    void showPath(const Graph& graph, const QVector<QPoint>& points);    //show the path searched by prm
+
+    const int** getMapMatrix() const;
+    int getMapHeight() const;
+    int getMapWidth() const;
+    const QPoint getStartPoint() const;
+    const QPoint getEndPoint() const;
 
 protected:
     void paintEvent(QPaintEvent *event) override;
@@ -67,17 +68,20 @@ private:
     void loadImage();   //load resource image
     void setStartPoint(int x, int y);
     void setEndPoint(int x, int y);
-    void showPoint();   //showe start point and end point
-    void refreashMap(); //refreash map
     void setMapSize(int width, int height);  //limit the size of map
+
     void generateMaze(int pos_i, int pos_j);    //generate a maze which acted a basic map
     void pileObstacle(int pos_i, int pos_j, int dir, int pile_coeff, int* count);    //pile up small obstacle to generate large obstacle block
     void removeObstacleRandomly(float erosing_coeff);  //remove some obstacle in maze randomly
     void obstacleClustering();      //clustering, to generate large obstacle block
+
     const QVector<int> existedRoad(const int **mat, int i, int j);   //check if there is a road
     const QVector<int> existedRoad(const int **mat, int i, int j, int dir);
     int getMatrixSum(int** mat, int row, int col, int start_i, int start_j, int size);
     void setMatrixValue(int** mat,  int row, int col, int start_i, int start_j, int size, int value);
+
+signals:
+    void startEndChanged(const QPoint &start, const QPoint &end);
 };
 
 #endif // GENERATEMAP_H
