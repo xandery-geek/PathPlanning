@@ -49,12 +49,22 @@ void MainWindow::initWidget()
     generate_button_ = new QPushButton("生成地图");
     generate_button_->setFixedWidth(100);
 
-    display_track_ = new QRadioButton("绘制轨迹");
+    display_track_ = new QCheckBox("绘制轨迹");
     display_track_->setFixedWidth(100);
     display_track_->setCheckable(false);
 
+    distance_button_ = new QRadioButton("距离优先");
+    distance_button_->setFixedWidth(100);
+    distance_button_->setChecked(true);
+    oil_button_ = new QRadioButton("耗油量优先");
+    oil_button_->setFixedWidth(100);
+
+    radio_group_ = new QButtonGroup;
+    radio_group_->addButton(distance_button_);
+    radio_group_->addButton(oil_button_);
+
     start_button_ = new QPushButton();
-    start_button_->setFixedSize(60, 60);
+    start_button_->setFixedSize(50, 50);
     setStartButton(false);
 
     control_group_ = new QGroupBox("控制区");
@@ -63,8 +73,8 @@ void MainWindow::initWidget()
     map_ = new GenerateMap();
 
     scroll_area_ = new QScrollArea;
-    scroll_area_->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
-    scroll_area_->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
+    //scroll_area_->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
+    //scroll_area_->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
     scroll_area_->setWidgetResizable(true);
     scroll_area_->setWidget(map_);
 
@@ -90,12 +100,14 @@ void MainWindow::initWidget()
 
     vertical_layout1->addLayout(hrizon_layout1);
     vertical_layout1->addLayout(hrizon_layout2);
-    vertical_layout1->addSpacerItem(new QSpacerItem(10, 20, QSizePolicy::Fixed, QSizePolicy::Fixed));
+    vertical_layout1->addSpacerItem(new QSpacerItem(10, 10, QSizePolicy::Fixed, QSizePolicy::Fixed));
     vertical_layout1->addLayout(hrizon_layout3);
     vertical_layout1->addLayout(hrizon_layout4);
-    vertical_layout1->addSpacerItem(new QSpacerItem(10, 20, QSizePolicy::Fixed, QSizePolicy::Fixed));
+    vertical_layout1->addSpacerItem(new QSpacerItem(10, 10, QSizePolicy::Fixed, QSizePolicy::Fixed));
+    vertical_layout1->addWidget(distance_button_);
+    vertical_layout1->addWidget(oil_button_);
+    vertical_layout1->addSpacerItem(new QSpacerItem(10, 10, QSizePolicy::Fixed, QSizePolicy::Fixed));
     vertical_layout1->addWidget(display_track_, Qt::AlignRight);
-    vertical_layout1->addSpacerItem(new QSpacerItem(10, 20, QSizePolicy::Fixed, QSizePolicy::Fixed));
     vertical_layout1->addWidget(generate_button_, Qt::AlignRight);
     vertical_layout1->addWidget(start_button_, Qt::AlignRight);
     vertical_layout1->addSpacerItem(new QSpacerItem(10, 10, QSizePolicy::Fixed, QSizePolicy::Expanding));
@@ -185,7 +197,15 @@ void MainWindow::onStartButton()
     prm.setStartPoint(map_->getStartPoint());    //set start point
     prm.setEndPoint(map_->getEndPoint());      //set end point
     prm.constructGraph(map_->getMapMatrix(), map_->getMapHeight(), map_->getMapWidth());
-    prm.searchPath();   //search path by PRM
+
+    if(distance_button_->isChecked())
+    {
+        prm.searchPath(false);   //search path by PRM, distance first
+    }
+    else
+    {
+        prm.searchPath(true);  //search path by PRM, the usage of oil first
+    }
 
     is_start_ = true;
     display_track_->setCheckable(true);

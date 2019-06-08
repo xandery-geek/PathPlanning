@@ -23,6 +23,7 @@ private:
     const int BASE_SIZE_ = 20;  //the size of basic unit of map.
     const int PILE_COEFFICIENT_ = 3;    //pile coefficient of map
     const float EROSING_COEFFICIENT_ = 0.3;  // erosing coefficient of map
+    const float SAND_COEFFICIENT_ = 0.05;   // coefficient of sand
 
     const QPoint LIMIT_WIDTH_;  //the min and max map width
     const QPoint LIMIT_HEIGHT_; //the min and max map height
@@ -33,6 +34,9 @@ private:
     QPoint start_point_;
     QPoint end_point_;
 
+    QPoint paint_offset_;
+    QPoint clicked_pos_;    //the position of left button clicked
+
     QPainter painter_;
 
     QPixmap *canvas_;        //canvas
@@ -40,6 +44,7 @@ private:
     //resource images
     QPixmap road_image_;
     QPixmap wall_image_;
+    QPixmap sand_image_;
     QPixmap start_image_;
     QPixmap end_image_;
 
@@ -63,6 +68,8 @@ public:
 protected:
     void paintEvent(QPaintEvent *event) override;
     void mousePressEvent(QMouseEvent *event) override;
+    void mouseReleaseEvent(QMouseEvent *event) override;
+    void mouseDoubleClickEvent(QMouseEvent *event) override;
 
 private:
     void loadImage();   //load resource image
@@ -74,9 +81,12 @@ private:
     void pileObstacle(int pos_i, int pos_j, int dir, int pile_coeff, int* count);    //pile up small obstacle to generate large obstacle block
     void removeObstacleRandomly(float erosing_coeff);  //remove some obstacle in maze randomly
     void obstacleClustering();      //clustering, to generate large obstacle block
+    void generateSand();    //genereate sand
 
     const QVector<int> existedRoad(const int **mat, int i, int j);   //check if there is a road
     const QVector<int> existedRoad(const int **mat, int i, int j, int dir);
+    QVector<QPoint> *aroundRoad(const int **mat, int i, int j);
+
     int getMatrixSum(int** mat, int row, int col, int start_i, int start_j, int size);
     void setMatrixValue(int** mat,  int row, int col, int start_i, int start_j, int size, int value);
 

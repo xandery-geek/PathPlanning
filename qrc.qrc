@@ -11,5 +11,6 @@
         <file>image/end.png</file>
         <file>image/road1.png</file>
         <file>image/wall1.png</file>
+        <file>image/sand.jpg</file>
     </qresource>
 </RCC>

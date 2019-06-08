@@ -12,6 +12,7 @@ public:
     public:
         int vertex_index;   //vertex
         float distance;     //the length of arc
+        float oil;        //the amount of oil usage
         Arc *next_arc;      //next arc
 
         Arc()
@@ -23,18 +24,12 @@ public:
         {
             vertex_index = vertex;
             distance = 0.0f;
+            oil = 0.0f;
             next_arc = nullptr;
         }
 
         ~Arc()
         {
-            Arc *temp;
-            while(next_arc)
-            {
-                temp = next_arc;
-                next_arc = next_arc->next_arc;
-                delete temp;
-            }
         }
     };
 
@@ -58,10 +53,6 @@ public:
 
         ~Vertex()
         {
-            if(head_arc != nullptr)
-            {
-                delete head_arc;
-            }
         }
     };
 
@@ -77,6 +68,7 @@ public:
     const QVector<Vertex>& getVertex() const;
     const Vertex& getVertex(int index) const;
     void addArc(int start, int end);
+    void addArc(int start, int end, float distance, float oil);
     void addArc(int start, const QVector<int> &end_points);
     const Graph::Arc getArc(int vertex, int index) const;
 
@@ -84,6 +76,7 @@ public:
 
 private:
     float getDistance(const QPoint& point1, const QPoint& point2);
+    float getOilUsage(const QPoint& point1, const QPoint& point2);
 };
 
 #endif // GRAPH_H

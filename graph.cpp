@@ -40,13 +40,50 @@ const Graph::Vertex &Graph::getVertex(int index) const
 void Graph::addArc(int start, int end)
 {
     Graph::Arc *arc = graph_[start].head_arc;
-    while(arc)
+
+    if(arc == nullptr)
     {
+        graph_[start].head_arc = new Graph::Arc(end);
+        arc = graph_[start].head_arc;
+    }
+    else
+    {
+        while(arc->next_arc)
+        {
+            arc = arc->next_arc;
+        }
+
+        arc->next_arc = new Graph::Arc(end);
         arc = arc->next_arc;
     }
 
-    arc = new Graph::Arc(end);
-    arc->distance = getDistance(graph_[start].pos, graph_[end].pos);
+    arc->distance = 0.0f;
+    arc->oil = 0.0f;
+    arc->next_arc = nullptr;
+}
+
+void Graph::addArc(int start, int end, float distance, float oil)
+{
+    Graph::Arc *arc = graph_[start].head_arc;
+
+    if(arc == nullptr)
+    {
+        graph_[start].head_arc = new Graph::Arc(end);
+        arc = graph_[start].head_arc;
+    }
+    else
+    {
+        while(arc->next_arc)
+        {
+            arc = arc->next_arc;
+        }
+
+        arc->next_arc = new Graph::Arc(end);
+        arc = arc->next_arc;
+    }
+
+    arc->distance = distance;
+    arc->oil = oil;
     arc->next_arc = nullptr;
 }
 
@@ -90,6 +127,19 @@ const Graph::Arc Graph::getArc(int vertex, int index) const
 
 void Graph::destroyGraph()
 {
+    for(int i=0; i<graph_.size(); i++)
+    {
+        Graph::Arc *temp;
+        Graph::Arc *arc = graph_[i].head_arc;
+        if(arc)
+        {
+            temp = arc;
+            arc = arc->next_arc;
+            delete temp;
+            temp = nullptr;
+        }
+    }
+
     graph_.clear();
 }
 

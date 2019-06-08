@@ -7,7 +7,9 @@
 #include <QColor>
 
 GenerateMap::GenerateMap(QWidget *parent)
-    :QWidget(parent), LIMIT_WIDTH_(11, 51), LIMIT_HEIGHT_(11, 31)
+    :QWidget(parent),
+      LIMIT_WIDTH_(11, 51), LIMIT_HEIGHT_(11, 31),
+      paint_offset_(0, 0)
 {
     map_matrix_ = nullptr;
     canvas_ = nullptr;
@@ -30,6 +32,7 @@ void GenerateMap::loadImage()
 {
     road_image_.load(":/new/prefix1/image/road1.png");
     wall_image_.load(":/new/prefix1/image/wall1.png");
+    sand_image_.load(":/new/prefix1/image/sand.jpg");
     start_image_.load(":/new/prefix1/image/start.png");
     end_image_.load(":/new/prefix1/image/end.png");
 }
@@ -86,7 +89,6 @@ void GenerateMap::creatMap(int width, int height)
         }
     }
 
-
     int count = 1;
     for(int i=0; i<20; i++)
     {
@@ -95,6 +97,7 @@ void GenerateMap::creatMap(int width, int height)
 
     this->removeObstacleRandomly(EROSING_COEFFICIENT_);
     this->obstacleClustering(); //waiting for improve
+    this->generateSand();
 }
 
 //depth first search to generate maze
@@ -200,23 +203,6 @@ void GenerateMap::pileObstacle(int pos_i, int pos_j, int dir, int pile_coeff, in
         }
 
         this->pileObstacle(next_i, next_j, vec[i], pile_coeff, count);
-//        if(map_matrix_[pos_i][ pos_j-1] == 1)
-//        {
-//            vec = existedRoad(map_matrix_, pos_i, pos_j, dir);
-
-//            if(vec.size() == 0)
-//            {
-//                map_matrix_[pos_i][pos_j] = 1;
-//                (*count)++;
-////                if(*count >= pile_coeff)
-////                {
-////                    *count = 0;
-////                    pile_coeff = qrand()%PILE_COEFFICIENT_+1;
-////                    return;
-////                }
-//                return;
-//            }
-//        }
     }
 }
 
@@ -257,6 +243,36 @@ void GenerateMap::obstacleClustering()
                 setMatrixValue(map_matrix_, height_, width_, i, j, 3, 0);
             }
         }
+    }
+}
+
+void GenerateMap::generateSand()
+{
+    int n = SAND_COEFFICIENT_*width_*height_;
+    int index_i=0, index_j =0;
+    int count = 0;
+    QVector<QPoint> *vec;
+
+    while(n)
+    {
+        index_i = qrand()%(height_-2) + 1;
+        index_j = qrand()%(width_-2) + 1;
+
+        vec = aroundRoad((const int**)map_matrix_, index_i, index_j);
+
+        if(vec->size())
+        {
+            count = qrand()%vec->size();
+            while(count--)
+            {
+                map_matrix_[vec->at(0).x()][vec->at(0).y()] = 2;
+                vec->pop_front();
+            }
+
+            n--;
+        }
+
+        delete vec;
     }
 }
 
@@ -313,6 +329,23 @@ const QVector<int> GenerateMap::existedRoad(const int **mat, int i, int j, int d
     if(i+1 > 0 && dir != D_UP && mat[i+1][j] == 0)
     {
         vec.push_back(D_DOWN);
+    }
+
+    return vec;
+}
+
+QVector<QPoint> *GenerateMap::aroundRoad(const int **mat, int i, int j)
+{
+    QVector<QPoint> *vec = new QVector<QPoint>;
+    for(int u=i-1; u<=i+1;u++)
+    {
+        for(int v=j-1; v<= j+1; v++)
+        {
+            if(mat[u][v] == 0)
+            {
+                vec->push_back(QPoint(u,v));
+            }
+        }
     }
 
     return vec;
@@ -382,19 +415,37 @@ void GenerateMap::showPath(const Graph &graph, const QVector<QPoint> &points)
         painter.drawEllipse(it1->pos.x()*BASE_SIZE_, it1->pos.y()*BASE_SIZE_, 10, 10);
     }
 
-    //draw path
+    //drow graph
     pen.setColor(QColor(0, 255, 0));    //green
+    painter.setPen(pen);
+
+    for(int i=0; i<vertex.size(); i++)
+    {
+        const Graph::Arc *arc = vertex[i].head_arc;
+        while (arc)
+        {
+            if(arc->vertex_index >= 0 && arc->vertex_index < vertex.size())
+            {
+                painter.drawLine(QPoint(vertex[i].pos.x()* BASE_SIZE_, vertex[i].pos.y() * BASE_SIZE_),
+                                 QPoint(vertex[arc->vertex_index].pos.x() * BASE_SIZE_, vertex[arc->vertex_index].pos.y() * BASE_SIZE_));
+            }
+            arc = arc->next_arc;
+        }
+    }
+
+    //draw path
+    pen.setColor(QColor(255, 0, 0));    //green
     painter.setPen(pen);
 
     if(points.size() >= 2)
     {
         //queue, first in first out
         QVector<QPoint> points_queue;
-        QVector<QPoint>::const_iterator it2 = points.cbegin();
+        QVector<QPoint>::const_iterator it3 = points.cbegin();
 
-        for(; it2 != points.cend(); it2++)
+        for(; it3 != points.cend(); it3++)
         {
-            points_queue.push_back(QPoint(*it2));
+            points_queue.push_back(QPoint(*it3));
         }
 
         QPoint start = points_queue.at(0);
@@ -474,7 +525,11 @@ void GenerateMap::refreashMap()
     {
         for(int j=0; j<width_; j++)
         {
-            if(map_matrix_[i][j]==1)
+            if(map_matrix_[i][j] == 2)
+            {
+                painter.drawPixmap(j*BASE_SIZE_, i*BASE_SIZE_, BASE_SIZE_, BASE_SIZE_, sand_image_);
+            }
+            else if(map_matrix_[i][j] == 1)
             {
                 painter.drawPixmap(j*BASE_SIZE_, i*BASE_SIZE_, BASE_SIZE_, BASE_SIZE_, wall_image_);
             }
@@ -497,7 +552,7 @@ void GenerateMap::paintEvent(QPaintEvent *event)
     }
 
     painter_.begin(this);
-    painter_.drawPixmap(0, 0, *canvas_);
+    painter_.drawPixmap(paint_offset_, *canvas_);
     painter_.end();
 }
 
@@ -510,7 +565,12 @@ void GenerateMap::mousePressEvent(QMouseEvent *event)
 
     if(event->button() == Qt::RightButton)
     {
-        if(map_matrix_[event->pos().y()/BASE_SIZE_][event->pos().x()/BASE_SIZE_] == 1)
+        QPoint pos;
+
+        pos.setX(event->pos().x()-paint_offset_.x());
+        pos.setY(event->pos().y()-paint_offset_.y());
+
+        if(map_matrix_[pos.y()/BASE_SIZE_][pos.x()/BASE_SIZE_] == 1)
         {
             QMessageBox::about(this, "Error", "起点和终点不能设置在障碍上!");
             return;
@@ -518,22 +578,43 @@ void GenerateMap::mousePressEvent(QMouseEvent *event)
 
         if(start_point_.x() == -1)
         {
-            setStartPoint(event->pos().x(), event->pos().y());
+            setStartPoint(pos.x(), pos.y());
         }
         else if(end_point_.x() == -1)
         {
-            setEndPoint(event->pos().x(), event->pos().y());
+            setEndPoint(pos.x(), pos.y());
         }
         else
         {
             setStartPoint(end_point_.x(), end_point_.y());
-            setEndPoint(event->pos().x(), event->pos().y());
+            setEndPoint(pos.x(), pos.y());
         }
 
         this->refreashMap();
         this->showPoint();
         emit startEndChanged((const QPoint)start_point_, (const QPoint)end_point_);
     }
+    else if(event->button() == Qt::LeftButton)
+    {
+        clicked_pos_ = event->pos();
+    }
+}
+
+void GenerateMap::mouseReleaseEvent(QMouseEvent *event)
+{
+    if(event->button() == Qt::LeftButton)
+    {
+        paint_offset_.setX(event->pos().x() - clicked_pos_.x());
+        paint_offset_.setY(event->pos().y() - clicked_pos_.y());
+        update();
+    }
+}
+
+void GenerateMap::mouseDoubleClickEvent(QMouseEvent *event)
+{
+    paint_offset_.setX(0);
+    paint_offset_.setY(0);
+    update();
 }
 
 void GenerateMap::setStartPoint(int x, int y)

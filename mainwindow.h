@@ -8,6 +8,8 @@
 #include <QGroupBox>
 #include <QScrollArea>
 #include <QRadioButton>
+#include <QButtonGroup>
+#include <QCheckBox>
 #include "generatemap.h"
 #include "prm.h"
 
@@ -27,7 +29,11 @@ private:
 
     QPushButton *generate_button_;
     QPushButton *start_button_;
-    QRadioButton *display_track_;
+    QCheckBox *display_track_;
+
+    QButtonGroup *radio_group_;
+    QRadioButton *distance_button_; //the distance of path is the first factor
+    QRadioButton *oil_button_;  //the amount of the usage of oil is the first factor
 
     QScrollArea *scroll_area_;
     GenerateMap *map_;
