@@ -238,7 +238,7 @@ void GenerateMap::obstacleClustering()
         for(int j=1; j+core_size <width_; j+=3)
         {
             count = getMatrixSum(map_matrix_, height_, width_, i, j, 3);
-            if(count < 3)
+            if(count < 4)
             {
                 setMatrixValue(map_matrix_, height_, width_, i, j, 3, 0);
             }

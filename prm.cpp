@@ -1,9 +1,12 @@
 #include "prm.h"
 #include <QTime>
 #include <cmath>
+#include <set>
+#include <queue>
+#include <unordered_map>
 
 PRM::PRM()
-    :start_(-1, -1), end_(-1, -1)
+    :start_(-1, -1), goal_(-1, -1)
 {
     kd_tree_ = nullptr;
 }
@@ -21,7 +24,9 @@ PRM::~PRM()
 
 void PRM::constructGraph(const int **mat, int row, int col)
 {
-    assert(start_.x() != -1 && end_.x() != -1);
+    assert(start_.x() != -1 && goal_.x() != -1);
+
+    graph_mat_ = mat;
 
     //clear graph
     prm_graph_.destroyGraph();
@@ -36,7 +41,7 @@ void PRM::constructGraph(const int **mat, int row, int col)
     QVector<QPoint> points;
 
     points.push_back(start_);   //add start point
-    points.push_back(end_);     //add end point
+    points.push_back(goal_);     //add end point
 
     qsrand(QTime(0,0,0).secsTo(QTime::currentTime()));
 
@@ -55,10 +60,10 @@ void PRM::constructGraph(const int **mat, int row, int col)
 
     prm_graph_.addVertex(points);   //set vertex table of graph
 
-    this->generateArc(mat, points);      //generate arc of graph
+    this->generateArc(points);      //generate arc of graph
 }
 
-void PRM::generateArc(const int** mat, const QVector<QPoint>& points)
+void PRM::generateArc(const QVector<QPoint>& points)
 {
     if(prm_graph_.getVertex().size() == 0)
     {
@@ -83,26 +88,17 @@ void PRM::generateArc(const int** mat, const QVector<QPoint>& points)
     int index = 0;
     float dis, oil;
 
-    QPoint mat_index1;
-    QPoint mat_index2;
-
     for(; it !=points.end(); it++)
     {
         neighbors.clear();
         neighbors = kd_tree_->getKNN(*it);
 
         for(int i=0; i<neighbors.size(); i++)
-        {
-            mat_index1.setX(points[index].y()); // change to mat index, i=y
-            mat_index1.setY(points[index].x()); // change to mat index, j=x
-
-            mat_index2.setX(points[neighbors[i]].y()); // change to mat index, i=y
-            mat_index2.setY(points[neighbors[i]].x()); // change to mat index, j=x
-
-            if(checkPath(mat, mat_index1, mat_index2))
+        {            
+            if(checkPath(points[index], points[neighbors[i]]))
             {
-                dis = getDistance(mat_index1, mat_index2);
-                oil = getOil(mat, mat_index1, mat_index2);
+                dis = getDistance(points[index], points[neighbors[i]]);
+                oil = getOil(points[index], points[neighbors[i]]);
 
                 prm_graph_.addArc(index, neighbors[i], dis, oil);     //add to arc table
                 prm_graph_.addArc(neighbors[i], index, dis, oil);     //add to arc table
@@ -120,8 +116,8 @@ void PRM::setStartPoint(const QPoint &point)
 
 void PRM::setEndPoint(const QPoint &point)
 {
-    end_.setX(point.x());
-    end_.setY(point.y());
+    goal_.setX(point.x());
+    goal_.setY(point.y());
 }
 
 void PRM::searchPath(bool option)
@@ -141,26 +137,79 @@ const Graph &PRM::getGraph() const
 
 void PRM::AStar(bool option)
 {
-    //clear previous path
-    path_.clear();
-    path_.push_back(start_);
+    //function pointer which point to the function of weight calculate
+    float (PRM::*getWeight)(const QPoint& point1, const QPoint& point2);
 
-    //oil first
-    if(option)
+    if(option)  //oil first
     {
-
+        getWeight = &PRM::getOil;
     }
-    else
+    else    //distance first
     {
-
+        getWeight = &PRM::getDistance;
     }
 
-    path_.push_back(end_);
+    const QVector<Graph::Vertex> vertex = prm_graph_.getVertex();
+
+    int start = prm_graph_.getVertex(start_);
+    int goal = prm_graph_.getVertex(goal_);
+
+    std::priority_queue<AStarCost, QVector<AStarCost>, std::greater<AStarCost>> queue;  //gobal distance
+    std::unordered_map<int, int> parent;  //the parent node of path node
+    std::unordered_map<int, float> open_list; //current actual distance
+    std::set<int> close_list;
+    QVector<int> neightbor;
+
+    queue.push(AStarCost(start, 0));  //push start point into queue
+    parent[start] = -1;   // -1 stand for no parent node
+    open_list[start] = 0;
+
+    while(!queue.empty())
+    {
+        AStarCost current_const = queue.top();
+        int current = current_const.index;
+        queue.pop();
+
+        close_list.insert(current); //visited
+
+        if(current == goal) //arrive goal
+        {
+            reconstructPath(vertex, start, goal, parent);    // reconstruct path
+            return;
+        }
+
+        neightbor = prm_graph_.getNeightbor(current);
+
+        for(int next: neightbor)
+        {
+            if(close_list.find(next) != close_list.end())   //visited
+            {
+                continue;
+            }
+
+            float new_const = open_list.at(current) +
+                    (this->*getWeight)(vertex[current].pos, vertex[next].pos);   //G
+
+            if(open_list.find(next) == open_list.end()
+                    || new_const < open_list.at(next))
+            {
+                open_list[next] = new_const;
+                new_const += (this->*getWeight)(vertex[next].pos, vertex[goal].pos); //F = G + H
+                queue.push(AStarCost(next, new_const));
+                parent[next] = current;
+            }
+        }
+    }
+
+    path_.clear();  //empty path
 }
 
-bool PRM::checkPath(const int **mat, const QPoint &point1, const QPoint &point2)
+bool PRM::checkPath(const QPoint &point1, const QPoint &point2)
 {
-    float num = 5 * std::max(abs(point1.x() - point2.x()), abs(point1.y() - point2.y()));
+    QPoint point1_ = transposePoint(point1);
+    QPoint point2_ = transposePoint(point2);
+
+    float num = 5 * std::max(abs(point1_.x() - point2_.x()), abs(point1_.y() - point2_.y()));
 
     //the same path
     if(num == 0)
@@ -168,21 +217,21 @@ bool PRM::checkPath(const int **mat, const QPoint &point1, const QPoint &point2)
         return false;
     }
 
-    float x_step = (float)((point2.x() - point1.x())/num);
-    float y_step = (float)((point2.y() - point1.y())/num);
+    float x_step = (float)((point2_.x() - point1_.x())/num);
+    float y_step = (float)((point2_.y() - point1_.y())/num);
 
     QVector<QPoint> vec;
 
     for(int i=0; i<=num; i++)
     {
-        vec.push_back(QPoint(point1.x() + i*x_step, point1.y()+ i*y_step));
+        vec.push_back(QPoint(point1_.x() + i*x_step, point1_.y()+ i*y_step));
     }
 
     QVector<QPoint>::const_iterator it = vec.cbegin();
     for(; it != vec.cend(); it++)
     {
         //if(isCrash(mat, graph_mat_row_, graph_mat_col_, *it))
-        if(mat[(int)it->x()][(int)it->y()] == 1)
+        if(graph_mat_[(int)it->x()][(int)it->y()] == 1)
         {
             return false;
         }
@@ -196,41 +245,54 @@ float PRM::getDistance(const QPoint &point1, const QPoint &point2)
     return sqrt(pow(point1.x() - point2.x(), 2) + pow(point1.y() - point2.y(), 2));
 }
 
-float PRM::getOil(const int **mat, const QPoint &point1, const QPoint &point2)
+float PRM::getOil(const QPoint &point1, const QPoint &point2)
 {
     float oil = 0.0f;
 
-    int num = std::max(abs(point1.x() - point2.x()), abs(point1.y() - point2.y()));
+    QPoint point1_ = transposePoint(point1);
+    QPoint point2_ = transposePoint(point2);
+
+    int num = std::max(abs(point1_.x() - point2_.x()), abs(point1_.y() - point2_.y()));
 
     if(num == 0)
     {
         return 0.0f;
     }
 
-    float x_step = (float)((point2.x() - point1.x())/num);
-    float y_step = (float)((point2.y() - point1.y())/num);
+    float x_step = (float)((point2_.x() - point1_.x())/num);
+    float y_step = (float)((point2_.y() - point1_.y())/num);
 
     QVector<QPoint> vec;
 
     for(int i=0; i<=num; i++)
     {
-        vec.push_back(QPoint(point1.x() + i*x_step, point1.y()+ i*y_step));
+        vec.push_back(QPoint(point1_.x() + i*x_step, point1_.y()+ i*y_step));
     }
 
     QVector<QPoint>::const_iterator it = vec.cbegin();
     for(; it != vec.cend(); it++)
     {
-        if(mat[(int)it->x()][(int)it->y()] == 2)
+        if(graph_mat_[(int)it->x()][(int)it->y()] == 2)
         {
             oil += SAND_WEIGHT;
         }
-        else if(mat[(int)it->x()][(int)it->y()] == 0)
+        else
         {
             oil += ROAD_WEIGHT;
         }
     }
 
     return oil;
+}
+
+QPoint PRM::transposePoint(const QPoint &point)
+{
+    QPoint res;
+
+    res.setX(point.y());
+    res.setY(point.x());
+
+    return res;
 }
 
 bool PRM::isCrash(const int **mat, int row, int col, const QPoint &point)
@@ -250,4 +312,21 @@ bool PRM::isCrash(const int **mat, int row, int col, const QPoint &point)
     }
 
     return false;
+}
+
+void PRM::reconstructPath(const QVector<Graph::Vertex>& vertex, int start, int goal,
+                          const std::unordered_map<int, int> &close_list)
+{
+    path_.clear();
+
+    path_.push_front(QPoint(vertex[goal].pos));
+    int index = close_list.at(goal);
+
+    while(index != start)
+    {
+        path_.push_front(QPoint(vertex[index].pos));
+        index = close_list.at(index);
+    }
+
+    path_.push_front(QPoint(vertex[start].pos));
 }

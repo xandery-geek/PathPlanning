@@ -67,10 +67,12 @@ public:
     void addVertex(const QPoint& point);
     const QVector<Vertex>& getVertex() const;
     const Vertex& getVertex(int index) const;
+    int getVertex(const QPoint& point) const;
     void addArc(int start, int end);
     void addArc(int start, int end, float distance, float oil);
     void addArc(int start, const QVector<int> &end_points);
     const Graph::Arc getArc(int vertex, int index) const;
+    QVector<int> getNeightbor(int vertex) const;
 
     void destroyGraph();
 

@@ -5,25 +5,56 @@
 #include <QPoint>
 #include "graph.h"
 #include "kdtree.h"
+#include <unordered_map>
+
+class AStarCost
+{
+public:
+    int index;
+    float cost;
+
+    AStarCost()
+    {
+        index = 0;
+        cost = 0.0f;
+    }
+
+    AStarCost(int index, float cost)
+    {
+        this->index = index;
+        this->cost = cost;
+    }
+
+    bool operator <(const AStarCost& obj) const
+    {
+        return this->cost < obj.cost;
+    }
+
+    bool operator >(const AStarCost& obj) const
+    {
+        return this->cost > obj.cost;
+    }
+};
 
 class PRM
 {
 private:
 
-    const float VERTEX_COEFFICIENT = 0.05;
-    const float K_COEFFICIENT = 0.02;
+    const float VERTEX_COEFFICIENT = 0.08;
+    const float K_COEFFICIENT = 0.04;
     const float ROAD_WEIGHT = 1;
-    const float SAND_WEIGHT = 2;
+    const float SAND_WEIGHT = 4;
 
     QPoint start_;
-    QPoint end_;
+    QPoint goal_;
 
     QVector<QPoint> path_;
 
     Graph prm_graph_;
     KdTree *kd_tree_;
-    int vertex_k_;
+    int vertex_k_;  // the scale of nearest beightbor
 
+    const int **graph_mat_; //the actual map data
     int graph_mat_row_;
     int graph_mat_col_;
 
@@ -32,7 +63,7 @@ public:
     ~PRM();
 
     void constructGraph(const int** mat, int row, int col);
-    void generateArc(const int **mat, const QVector<QPoint>& points); //KNN
+    void generateArc(const QVector<QPoint>& points); //KNN
     void setStartPoint(const QPoint& point);
     void setEndPoint(const QPoint& point);
     void searchPath(bool option);
@@ -41,10 +72,13 @@ public:
 
 private:
     void AStar(bool option);
-    bool checkPath(const int** mat, const QPoint& point1, const QPoint& point2);
+    bool checkPath(const QPoint& point1, const QPoint& point2);
     float getDistance(const QPoint& point1, const QPoint& point2);
-    float getOil(const int** mat, const QPoint& point1, const QPoint& point2);
+    float getOil(const QPoint& point1, const QPoint& point2);
+    QPoint transposePoint(const QPoint& point);
     bool isCrash(const int** mat, int row, int col, const QPoint& point);
+    void reconstructPath(const QVector<Graph::Vertex> &vertex, int start, int goal,
+                         const std::unordered_map<int, int> &close_list);
 };
 
 #endif // PRM_H

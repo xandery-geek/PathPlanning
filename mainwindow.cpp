@@ -225,7 +225,15 @@ void MainWindow::onDisplayButton()
 
         graph = prm.getGraph();
         points = prm.getPath();
-        map_->showPath(graph, points);
+
+        if(points.empty())
+        {
+            QMessageBox::about(this, "Not Find", "查找失败");
+        }
+        else
+        {
+            map_->showPath(graph, points);
+        }
     }
     else    //delete path track, refreash map
     {

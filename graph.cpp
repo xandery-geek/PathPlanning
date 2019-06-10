@@ -37,6 +37,19 @@ const Graph::Vertex &Graph::getVertex(int index) const
     return graph_[index];
 }
 
+int Graph::getVertex(const QPoint &point) const
+{
+    for(int i=0; i<graph_.size(); i++)
+    {
+        if(graph_[i].pos == point)
+        {
+            return i;
+        }
+    }
+
+    return -1;  //not find
+}
+
 void Graph::addArc(int start, int end)
 {
     Graph::Arc *arc = graph_[start].head_arc;
@@ -123,6 +136,22 @@ const Graph::Arc Graph::getArc(int vertex, int index) const
     }
 
     return (*arc);
+}
+
+QVector<int> Graph::getNeightbor(int vertex) const
+{
+    assert(vertex>=0 && vertex < graph_.size());
+
+    QVector<int> vec;
+
+    Graph::Arc *arc = graph_[vertex].head_arc;
+    while(arc)
+    {
+        vec.push_back(arc->vertex_index);
+        arc = arc->next_arc;
+    }
+
+    return vec;
 }
 
 void Graph::destroyGraph()

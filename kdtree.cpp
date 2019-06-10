@@ -273,7 +273,7 @@ void KdTree::KNNSearch(KdTree::KdNode *node, const QPoint &point,
         }
     }
 
-    if(vec.size() < this->k_)
+    if(vec.size() < (int)this->k_)
     {
         vec.push_back(Neightbor(node->index, getDistance(point, node->pos)));
     }
