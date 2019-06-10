@@ -5,15 +5,25 @@
 #include <QVector>
 #include <QMessageBox>
 #include <QColor>
+#include <QPropertyAnimation>
 
 GenerateMap::GenerateMap(QWidget *parent)
     :QWidget(parent),
-      LIMIT_WIDTH_(11, 51), LIMIT_HEIGHT_(11, 31),
+      LIMIT_WIDTH_(11, 200), LIMIT_HEIGHT_(11, 100),
       paint_offset_(0, 0)
 {
     map_matrix_ = nullptr;
     canvas_ = nullptr;
 
+    animation_group_ = new QSequentialAnimationGroup(this);
+    timer_ = new QTimer;
+
+    robot_label_ = new QLabel(this);
+    robot_label_->hide();
+    robot_label_->setFixedSize(ROBOT_SIZE, ROBOT_SIZE);
+    robot_label_->setStyleSheet("border-image: url(:/new/prefix1/image/robot1.png);");
+
+    connect(timer_, SIGNAL(timeout()), this, SLOT(changeCharacter()));
     loadImage();
 }
 
@@ -90,7 +100,7 @@ void GenerateMap::creatMap(int width, int height)
     }
 
     int count = 1;
-    for(int i=0; i<20; i++)
+    for(int i=0; i<width_*height_*0.03; i++)
     {
         this->pileObstacle(1, 1, D_DOWN, qrand()%PILE_COEFFICIENT_+1, &count);
     }
@@ -232,15 +242,27 @@ void GenerateMap::obstacleClustering()
 
     int count=0;
 
-    for(int i=1; i+core_size < height_; i+=core_size)
+    for(int i=1; i< height_-1; i++)
     {
-        count = 0;
-        for(int j=1; j+core_size <width_; j+=3)
+        for(int j=1; j <width_-1; j++)
         {
-            count = getMatrixSum(map_matrix_, height_, width_, i, j, 3);
-            if(count < 4)
+            count = getMatrixSum(map_matrix_, height_, width_, i, j, core_size);
+            if(count > 7)
             {
-                setMatrixValue(map_matrix_, height_, width_, i, j, 3, 0);
+                map_matrix_[i][j] = 1;
+            }
+        }
+    }
+
+    for(int i=1; i< height_-1; i++)
+    {
+        for(int j=1; j <width_-1; j++)
+        {
+            count = getMatrixSum(map_matrix_, height_, width_, i, j, core_size);
+            if(count < 3)
+            {
+                map_matrix_[i][j] = 0;
+                //setMatrixValue(map_matrix_, height_, width_, i, j, core_size, 0);
             }
         }
     }
@@ -249,6 +271,7 @@ void GenerateMap::obstacleClustering()
 void GenerateMap::generateSand()
 {
     int n = SAND_COEFFICIENT_*width_*height_;
+
     int index_i=0, index_j =0;
     int count = 0;
     QVector<QPoint> *vec;
@@ -353,13 +376,15 @@ QVector<QPoint> *GenerateMap::aroundRoad(const int **mat, int i, int j)
 
 int GenerateMap::getMatrixSum(int **mat, int row, int col, int start_i, int start_j, int size)
 {
-    assert(start_i >= 0 && start_i + size <= row &&
-           start_j >= 0 && start_j + size <= col);
+    int scale = (size-1)/2;
+
+    assert(start_i - scale >= 0 && start_i + scale <= row &&
+           start_j - scale >= 0 && start_j + scale <= col);
 
     int count = 0;
-    for(int i=start_i; i<start_i + size; i++)
+    for(int i = start_i - scale; i <= start_i + scale; i++)
     {
-        for(int j=start_j; j<start_j + size; j++)
+        for(int j = start_j - scale; j <= start_j + scale; j++)
         {
             count += mat[i][j];
         }
@@ -369,22 +394,30 @@ int GenerateMap::getMatrixSum(int **mat, int row, int col, int start_i, int star
 
 void GenerateMap::setMatrixValue(int **mat, int row, int col, int start_i, int start_j, int size, int value)
 {
-    assert(start_i >= 0 && start_i + size <= row &&
-           start_j >= 0 && start_j + size <= col);
+    int scale = (size-1)/2;
 
-    for(int i=start_i; i<start_i + size; i++)
+    assert(start_i - scale >= 0 && start_i + scale <= row &&
+           start_j - scale >= 0 && start_j + scale <= col);
+
+    for(int i=start_i - scale; i<=start_i + scale; i++)
     {
-        for(int j=start_j; j<start_j + size; j++)
+        for(int j=start_j - scale; j<=start_j + scale; j++)
         {
             mat[i][j] = value;
         }
     }
 }
 
+void GenerateMap::changeCharacter()
+{
+
+}
+
 void GenerateMap::showMap()
 {
     this->resize(width_*BASE_SIZE_, height_*BASE_SIZE_);    //adjust widget size
     this->refreashMap();
+    this->robot_label_->hide();
 
     setStartPoint(-1, -1);
     setEndPoint(-1, -1);
@@ -392,7 +425,28 @@ void GenerateMap::showMap()
 
 void GenerateMap::showRobot(const QVector<QPoint> &points)
 {
+    animation_group_->clear();
+    timer_->stop();
 
+    for(int i=0; i<points.size()-1; i++)
+    {
+        QPropertyAnimation *animation = new QPropertyAnimation(robot_label_, "geometry");
+
+        animation->setDuration(1000);
+        animation->setStartValue(QRect(paint_offset_.x() + points[i].x()*BASE_SIZE_ + (BASE_SIZE_ - ROBOT_SIZE)/2,
+                                        paint_offset_.y() + points[i].y()*BASE_SIZE_ + (BASE_SIZE_ - ROBOT_SIZE)/2,
+                                       ROBOT_SIZE, ROBOT_SIZE));
+
+        animation->setEndValue(QRect(paint_offset_.x() + points[i+1].x()*BASE_SIZE_ + (BASE_SIZE_ - ROBOT_SIZE)/2,
+                                      paint_offset_.y() + points[i+1].y()*BASE_SIZE_ + (BASE_SIZE_ - ROBOT_SIZE)/2,
+                                        ROBOT_SIZE, ROBOT_SIZE));
+
+        animation->setEasingCurve(QEasingCurve::Linear);
+
+        animation_group_->addAnimation(animation);
+    }
+    robot_label_->show();
+    animation_group_->start();
 }
 
 void GenerateMap::showPath(const Graph &graph, const QVector<QPoint> &points)
@@ -412,7 +466,8 @@ void GenerateMap::showPath(const Graph &graph, const QVector<QPoint> &points)
     QVector<Graph::Vertex>::const_iterator it1 = vertex.cbegin();
     for(; it1!=vertex.cend(); it1++)
     {
-        painter.drawEllipse(it1->pos.x()*BASE_SIZE_, it1->pos.y()*BASE_SIZE_, 10, 10);
+        painter.drawEllipse(it1->pos.x()*BASE_SIZE_ + BASE_SIZE_/2,
+                            it1->pos.y()*BASE_SIZE_+ BASE_SIZE_/2, 5, 5);
     }
 
     //drow graph
@@ -426,8 +481,10 @@ void GenerateMap::showPath(const Graph &graph, const QVector<QPoint> &points)
         {
             if(arc->vertex_index >= 0 && arc->vertex_index < vertex.size())
             {
-                painter.drawLine(QPoint(vertex[i].pos.x()* BASE_SIZE_, vertex[i].pos.y() * BASE_SIZE_),
-                                 QPoint(vertex[arc->vertex_index].pos.x() * BASE_SIZE_, vertex[arc->vertex_index].pos.y() * BASE_SIZE_));
+                painter.drawLine(QPoint(vertex[i].pos.x()* BASE_SIZE_ + BASE_SIZE_/2 ,
+                                        vertex[i].pos.y() * BASE_SIZE_ + BASE_SIZE_/2),
+                                 QPoint(vertex[arc->vertex_index].pos.x() * BASE_SIZE_ + BASE_SIZE_/2,
+                                        vertex[arc->vertex_index].pos.y() * BASE_SIZE_ + BASE_SIZE_/2));
             }
             arc = arc->next_arc;
         }
@@ -458,8 +515,10 @@ void GenerateMap::showPath(const Graph &graph, const QVector<QPoint> &points)
             end = points_queue.at(0);
             points_queue.pop_front();
 
-            painter.drawLine(QPoint(start.x()*BASE_SIZE_, start.y()*BASE_SIZE_),
-                             QPoint(end.x()*BASE_SIZE_, end.y()*BASE_SIZE_));
+            painter.drawLine(QPoint(start.x()*BASE_SIZE_ + BASE_SIZE_/2 ,
+                                    start.y()*BASE_SIZE_ + BASE_SIZE_/2),
+                             QPoint(end.x()*BASE_SIZE_ + BASE_SIZE_/2,
+                                    end.y()*BASE_SIZE_ + BASE_SIZE_/2));
             start = end;
         }
     }
@@ -579,20 +638,24 @@ void GenerateMap::mousePressEvent(QMouseEvent *event)
         if(start_point_.x() == -1)
         {
             setStartPoint(pos.x(), pos.y());
+            emit startEndChanged((const QPoint)start_point_, (const QPoint)end_point_);
         }
         else if(end_point_.x() == -1)
         {
             setEndPoint(pos.x(), pos.y());
+            emit startEndChanged((const QPoint)start_point_, (const QPoint)end_point_);
+            emit endChanged();
         }
         else
         {
             setStartPoint(end_point_.x(), end_point_.y());
             setEndPoint(pos.x(), pos.y());
+            emit startEndChanged((const QPoint)start_point_, (const QPoint)end_point_);
+            emit endChanged();
         }
 
         this->refreashMap();
         this->showPoint();
-        emit startEndChanged((const QPoint)start_point_, (const QPoint)end_point_);
     }
     else if(event->button() == Qt::LeftButton)
     {
@@ -660,5 +723,15 @@ void GenerateMap::setMapSize(int width, int height)
     else if(height_ > LIMIT_HEIGHT_.y())
     {
         height_ = LIMIT_HEIGHT_.y();
+    }
+
+    if(width_%2 == 0)
+    {
+        width_ += 1;
+    }
+
+    if(height_%2 == 0)
+    {
+        height_ += 1;
     }
 }

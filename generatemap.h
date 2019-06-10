@@ -5,6 +5,9 @@
 #include <QPainter>
 #include <QPixmap>
 #include <QPoint>
+#include <QTimer>
+#include <QLabel>
+#include <QSequentialAnimationGroup>
 #include "graph.h"
 
 class GenerateMap: public QWidget
@@ -20,7 +23,8 @@ private:
         D_DOWN = 3,
     };
 
-    const int BASE_SIZE_ = 20;  //the size of basic unit of map.
+    const int BASE_SIZE_ = 30;  //the size of basic unit of map.
+    const int ROBOT_SIZE = 25;
     const int PILE_COEFFICIENT_ = 3;    //pile coefficient of map
     const float EROSING_COEFFICIENT_ = 0.3;  // erosing coefficient of map
     const float SAND_COEFFICIENT_ = 0.05;   // coefficient of sand
@@ -47,6 +51,13 @@ private:
     QPixmap sand_image_;
     QPixmap start_image_;
     QPixmap end_image_;
+
+    QLabel *robot_label_;
+
+    QTimer *timer_;
+
+public:
+    QSequentialAnimationGroup *animation_group_;
 
 public:
     GenerateMap(QWidget* parent=nullptr);
@@ -92,6 +103,10 @@ private:
 
 signals:
     void startEndChanged(const QPoint &start, const QPoint &end);
+    void endChanged();
+
+public slots:
+    void changeCharacter();
 };
 
 #endif // GENERATEMAP_H

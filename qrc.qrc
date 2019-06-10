@@ -12,5 +12,7 @@
         <file>image/road1.png</file>
         <file>image/wall1.png</file>
         <file>image/sand.jpg</file>
+        <file>image/robot1.png</file>
+        <file>image/robot2.png</file>
     </qresource>
 </RCC>

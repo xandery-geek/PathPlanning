@@ -30,6 +30,7 @@ private:
     QPushButton *generate_button_;
     QPushButton *start_button_;
     QCheckBox *display_track_;
+    QCheckBox *auto_mode_;
 
     QButtonGroup *radio_group_;
     QRadioButton *distance_button_; //the distance of path is the first factor
@@ -57,10 +58,12 @@ private:
 public slots:
 
     void onStartEndChange(const QPoint& start, const QPoint& end);
+    void onAutoModeChanged(int state);
     void onGenerateButton();
     void onStartButton();
     void onDisplayButton();
     void onEditChange();
+    void onAnimationFinished();
 };
 
 #endif // MAINWINDOW_H

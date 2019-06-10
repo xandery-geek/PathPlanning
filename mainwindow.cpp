@@ -53,6 +53,9 @@ void MainWindow::initWidget()
     display_track_->setFixedWidth(100);
     display_track_->setCheckable(false);
 
+    auto_mode_ = new QCheckBox("自动寻路");
+    auto_mode_->setFixedWidth(100);
+
     distance_button_ = new QRadioButton("距离优先");
     distance_button_->setFixedWidth(100);
     distance_button_->setChecked(true);
@@ -108,6 +111,7 @@ void MainWindow::initWidget()
     vertical_layout1->addWidget(oil_button_);
     vertical_layout1->addSpacerItem(new QSpacerItem(10, 10, QSizePolicy::Fixed, QSizePolicy::Fixed));
     vertical_layout1->addWidget(display_track_, Qt::AlignRight);
+    vertical_layout1->addWidget(auto_mode_, Qt::AlignCenter);
     vertical_layout1->addWidget(generate_button_, Qt::AlignRight);
     vertical_layout1->addWidget(start_button_, Qt::AlignRight);
     vertical_layout1->addSpacerItem(new QSpacerItem(10, 10, QSizePolicy::Fixed, QSizePolicy::Expanding));
@@ -135,8 +139,10 @@ void MainWindow::connectSigal()
     connect(height_edit_, SIGNAL(textChanged(QString)), this, SLOT(onEditChange()));
     connect(generate_button_, SIGNAL(clicked(bool)), this, SLOT(onGenerateButton()));
     connect(display_track_, SIGNAL(clicked(bool)), this, SLOT(onDisplayButton()));
+    connect(auto_mode_, SIGNAL(stateChanged(int)), this, SLOT(onAutoModeChanged(int)));
     connect(start_button_, SIGNAL(clicked(bool)), this, SLOT(onStartButton()));
     connect(map_, SIGNAL(startEndChanged(QPoint,QPoint)), this, SLOT(onStartEndChange(QPoint,QPoint)));
+    connect(map_->animation_group_, SIGNAL(finished()), this, SLOT(onAnimationFinished()));
 }
 
 void MainWindow::setStartButton(bool enable)
@@ -164,6 +170,18 @@ void MainWindow::onStartEndChange(const QPoint &start, const QPoint &end)
     if(end.x() != -1)
     {
         end_coordinate_->setText("(" + QString::number(end.x()) + "," + QString::number(end.y()) + ")");
+    }
+}
+
+void MainWindow::onAutoModeChanged(int state)
+{
+    if(state == Qt::Checked)
+    {
+        connect(map_, SIGNAL(endChanged()), this, SLOT(onStartButton()));
+    }
+    else
+    {
+        disconnect(map_, SIGNAL(endChanged()), this, SLOT(onStartButton()));
     }
 }
 
@@ -207,8 +225,20 @@ void MainWindow::onStartButton()
         prm.searchPath(true);  //search path by PRM, the usage of oil first
     }
 
-    is_start_ = true;
-    display_track_->setCheckable(true);
+    QVector<QPoint> points = prm.getPath();
+
+    if(points.empty())
+    {
+        QMessageBox::about(this, "Not Find", "查找失败");
+    }
+    else
+    {
+        map_->showRobot(points);    //show animation
+        setStartButton(false);      //disable start button
+
+        is_start_ = true;
+        display_track_->setCheckable(true);
+    }
 }
 
 void MainWindow::onDisplayButton()
@@ -232,7 +262,7 @@ void MainWindow::onDisplayButton()
         }
         else
         {
-            map_->showPath(graph, points);
+            map_->showPath(graph, points);  // show the graph and path
         }
     }
     else    //delete path track, refreash map
@@ -257,4 +287,9 @@ void MainWindow::onEditChange()
     {
        line_edit->setStyleSheet(0);
     }
+}
+
+void MainWindow::onAnimationFinished()
+{
+    setStartButton(true);
 }

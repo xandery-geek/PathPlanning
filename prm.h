@@ -40,10 +40,10 @@ class PRM
 {
 private:
 
-    const float VERTEX_COEFFICIENT = 0.08;
-    const float K_COEFFICIENT = 0.04;
+    const float VERTEX_COEFFICIENT = 0.3;
+    const float K_COEFFICIENT = 0.02;
     const float ROAD_WEIGHT = 1;
-    const float SAND_WEIGHT = 4;
+    const float SAND_WEIGHT = 8;
 
     QPoint start_;
     QPoint goal_;

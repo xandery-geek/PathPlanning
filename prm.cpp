@@ -209,7 +209,7 @@ bool PRM::checkPath(const QPoint &point1, const QPoint &point2)
     QPoint point1_ = transposePoint(point1);
     QPoint point2_ = transposePoint(point2);
 
-    float num = 5 * std::max(abs(point1_.x() - point2_.x()), abs(point1_.y() - point2_.y()));
+    float num = 10 * std::max(abs(point1_.x() - point2_.x()), abs(point1_.y() - point2_.y()));
 
     //the same path
     if(num == 0)
@@ -224,14 +224,13 @@ bool PRM::checkPath(const QPoint &point1, const QPoint &point2)
 
     for(int i=0; i<=num; i++)
     {
-        vec.push_back(QPoint(point1_.x() + i*x_step, point1_.y()+ i*y_step));
+        vec.push_back(QPoint(std::round(point1_.x() + i*x_step),
+                             std::round(point1_.y() + i*y_step)));
     }
 
-    QVector<QPoint>::const_iterator it = vec.cbegin();
-    for(; it != vec.cend(); it++)
+    for(QPoint point: vec)
     {
-        //if(isCrash(mat, graph_mat_row_, graph_mat_col_, *it))
-        if(graph_mat_[(int)it->x()][(int)it->y()] == 1)
+        if(graph_mat_[point.x()][point.y()] == 1)
         {
             return false;
         }
