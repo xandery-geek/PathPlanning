@@ -149,6 +149,7 @@ void MainWindow::setStartButton(bool enable)
 {
     if(enable)
     {
+        is_start_ = false;
         start_button_->setEnabled(true);
         start_button_->setStyleSheet("QPushButton{border-image: url(:/new/prefix1/image/button3.png);}"
                                      "QPushButton:hover{border-image: url(:/new/prefix1/image/button4.png);}"
@@ -204,6 +205,10 @@ void MainWindow::onGenerateButton()
 
 void MainWindow::onStartButton()
 {
+    if(is_start_ == true)
+    {
+        return;
+    }
 
     //start prm
     if(start_coordinate_->text() == "" || end_coordinate_->text() == "")
@@ -243,11 +248,6 @@ void MainWindow::onStartButton()
 
 void MainWindow::onDisplayButton()
 {
-    if(!is_start_)  //not generate path
-    {
-        return;
-    }
-
     if(display_track_->isChecked()) //show path
     {
         Graph graph;

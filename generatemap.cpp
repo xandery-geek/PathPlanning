@@ -669,6 +669,8 @@ void GenerateMap::mouseReleaseEvent(QMouseEvent *event)
     {
         paint_offset_.setX(event->pos().x() - clicked_pos_.x());
         paint_offset_.setY(event->pos().y() - clicked_pos_.y());
+        robot_label_->move(end_point_.x()+paint_offset_.x(),
+                           end_point_.y()+paint_offset_.y());
         update();
     }
 }
@@ -677,6 +679,8 @@ void GenerateMap::mouseDoubleClickEvent(QMouseEvent *event)
 {
     paint_offset_.setX(0);
     paint_offset_.setY(0);
+    robot_label_->move(end_point_.x()+paint_offset_.x(),
+                       end_point_.y()+paint_offset_.y());
     update();
 }
 

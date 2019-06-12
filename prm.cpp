@@ -217,8 +217,8 @@ bool PRM::checkPath(const QPoint &point1, const QPoint &point2)
         return false;
     }
 
-    float x_step = (float)((point2_.x() - point1_.x())/num);
-    float y_step = (float)((point2_.y() - point1_.y())/num);
+    float x_step = ((float)(point2_.x() - point1_.x())/num);
+    float y_step = ((float)(point2_.y() - point1_.y())/num);
 
     QVector<QPoint> vec;
 
@@ -251,27 +251,28 @@ float PRM::getOil(const QPoint &point1, const QPoint &point2)
     QPoint point1_ = transposePoint(point1);
     QPoint point2_ = transposePoint(point2);
 
-    int num = std::max(abs(point1_.x() - point2_.x()), abs(point1_.y() - point2_.y()));
+    int num = 30 * std::max(abs(point1_.x() - point2_.x()), abs(point1_.y() - point2_.y()));
 
     if(num == 0)
     {
         return 0.0f;
     }
 
-    float x_step = (float)((point2_.x() - point1_.x())/num);
-    float y_step = (float)((point2_.y() - point1_.y())/num);
+    float x_step = ((float)(point2_.x() - point1_.x())/num);
+    float y_step = ((float)(point2_.y() - point1_.y())/num);
 
     QVector<QPoint> vec;
 
     for(int i=0; i<=num; i++)
     {
-        vec.push_back(QPoint(point1_.x() + i*x_step, point1_.y()+ i*y_step));
+        vec.push_back(QPoint(std::round(point1_.x() + i*x_step),
+                             std::round(point1_.y() + i*y_step)));
     }
 
     QVector<QPoint>::const_iterator it = vec.cbegin();
     for(; it != vec.cend(); it++)
     {
-        if(graph_mat_[(int)it->x()][(int)it->y()] == 2)
+        if(graph_mat_[it->x()][it->y()] == 2)
         {
             oil += SAND_WEIGHT;
         }

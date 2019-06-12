@@ -40,7 +40,7 @@ class PRM
 {
 private:
 
-    const float VERTEX_COEFFICIENT = 0.3;
+    const float VERTEX_COEFFICIENT = 0.4;
     const float K_COEFFICIENT = 0.02;
     const float ROAD_WEIGHT = 1;
     const float SAND_WEIGHT = 8;
